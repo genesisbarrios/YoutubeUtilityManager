@@ -34,7 +34,7 @@ You don't need to install ffmpeg. It comes with the npm dependencies (`ffmpeg-st
 
 ```bash
 npm install            # also runs `npm run setup`: creates .venv with yt-dlp, links ffmpeg into ./bin
-cp .env.example .env   # optional; only needed for the dashboard sign-in
+cp .env.example .env.local   # optional; only needed for the dashboard sign-in (.env also works)
 npm start              # or: npm run dev (auto-restart)
 ```
 
@@ -51,7 +51,7 @@ Open http://localhost:3000.
 1. In [Google Cloud Console](https://console.cloud.google.com/), enable **YouTube Data API v3**.
 2. Go to **Credentials → Create credentials → OAuth client ID → Web application**.
 3. Add `http://localhost:3000` to **Authorized JavaScript origins**.
-4. Put the client ID in `.env` as `GOOGLE_CLIENT_ID=...` and restart.
+4. Put the client ID in `.env.local` (or `.env`) as `GOOGLE_CLIENT_ID=...` and restart.
 
 Sign-in uses Google Identity Services. The old `gapi.auth2` library was shut down by Google.
 

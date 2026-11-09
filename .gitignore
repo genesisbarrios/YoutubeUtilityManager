@@ -1,6 +1,8 @@
 node_modules/
 downloads/
 .env
+.env.local
+.env.*.local
 .DS_Store
 ._*
 bin/

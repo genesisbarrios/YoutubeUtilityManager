@@ -1,4 +1,6 @@
-require("dotenv").config();
+// .env.local (machine-specific, git-ignored) wins over .env; dotenv never overrides already-set vars.
+require("dotenv").config({ path: require("path").join(__dirname, ".env.local") });
+require("dotenv").config({ path: require("path").join(__dirname, ".env") });
 const express = require("express");
 const path = require("path");
 const dl = require("./lib/downloader");

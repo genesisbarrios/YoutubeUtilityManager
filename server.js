@@ -67,7 +67,7 @@ app.delete("/api/jobs/:id", (req, res) => {
   res.json({ ok: true });
 });
 
-app.listen(PORT, HOST, async () => {
+const server = app.listen(PORT, HOST, async () => {
   console.log(`YoutubeUtilityManager running at http://${HOST}:${PORT}`);
   const deps = await dl.checkDependencies();
   if (!deps["yt-dlp"] || !deps.ffmpeg) {
@@ -76,4 +76,12 @@ app.listen(PORT, HOST, async () => {
     console.log(`yt-dlp ${deps["yt-dlp"]} · ${deps.ffmpeg.split(" ").slice(0, 3).join(" ")}`);
   }
   if (!GOOGLE_CLIENT_ID) console.warn("ℹ️  GOOGLE_CLIENT_ID not set — dashboard sign-in disabled (see .env.example).");
+});
+
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`❌ Port ${PORT} is already in use. Stop the other process (lsof -nP -iTCP:${PORT} -sTCP:LISTEN) or run with PORT=3001 npm start`);
+    process.exit(1);
+  }
+  throw err;
 });

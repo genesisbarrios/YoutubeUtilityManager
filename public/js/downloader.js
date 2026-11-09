@@ -66,11 +66,13 @@
       b.type = "button";
       b.className = "chip" + (i === 0 ? " active" : "");
       b.dataset.value = it.value;
-      b.innerHTML = "<span></span>" + (it.bytes ? "<small>~" + fmtBytes(it.bytes) + "</small>" : "");
+      b.dataset.bytes = it.bytes || "";
+      b.innerHTML = "<span></span>" + (it.bytes ? "<small></small>" : "");
       b.firstChild.textContent = it.label;
       q.appendChild(b);
     });
     state.height = "best";
+    initClip(info);
     resetProgress();
     $("result").hidden = false;
     $("result").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -94,6 +96,7 @@
     state.mode = t.dataset.mode;
     $("videoOpts").hidden = state.mode !== "video";
     $("audioOpts").hidden = state.mode !== "audio";
+    $("preciseWrap").hidden = state.mode !== "video";
   }));
 
   function updateEncodingHint() {
@@ -131,6 +134,13 @@
     const body = state.mode === "video"
       ? { url: state.info.url, mode: "video", height: state.height, encoding: $("encoding").value, container: $("container").value }
       : { url: state.info.url, mode: "audio", audioFormat: state.audioFormat, audioBitrate: $("bitrate").value };
+    if ($("clipToggle").checked) {
+      const c = readClip();
+      if (c.error) { $("clipError").textContent = c.error; $("clipError").hidden = false; return; }
+      body.start = c.start;
+      if (c.end < state.info.duration) body.end = c.end;
+      if (state.mode === "video") body.preciseCut = $("preciseCut").checked;
+    }
     $("downloadBtn").disabled = true;
     try {
       const { id } = await api("/api/jobs", { method: "POST", body: JSON.stringify(body) });
@@ -185,6 +195,114 @@
     };
     es.onerror = () => { /* EventSource auto-reconnects */ };
   }
+
+  // ---------- Section / duration selection ----------
+  const clipEls = { s: $("rangeStart"), e: $("rangeEnd") };
+
+  // "83", "1:23", "1:02:03" -> seconds (NaN if invalid, null if empty)
+  function parseTime(v) {
+    v = String(v).trim();
+    if (!v) return null;
+    const parts = v.split(":").map(Number);
+    if (parts.length > 3 || parts.some((n) => !Number.isFinite(n) || n < 0)) return NaN;
+    return parts.reduce((a, n) => a * 60 + n, 0);
+  }
+
+  function initClip(info) {
+    const d = Math.max(1, Math.floor(info.duration || 0));
+    [clipEls.s, clipEls.e].forEach((r) => { r.max = d; });
+    clipEls.s.value = 0;
+    clipEls.e.value = d;
+    $("startTime").value = "0:00";
+    $("endTime").value = fmtDuration(d);
+    $("clipToggle").checked = false;
+    $("clipToggle").disabled = !info.duration;
+    $("clipOpts").hidden = true;
+    $("clipError").hidden = true;
+    stopPreview();
+    syncClip();
+  }
+
+  function readClip() {
+    const d = state.info ? Math.floor(state.info.duration || 0) : 0;
+    const start = parseTime($("startTime").value) ?? 0;
+    const end = parseTime($("endTime").value) ?? d;
+    if (Number.isNaN(start) || Number.isNaN(end)) return { error: "Use times like 1:23 or 1:02:03." };
+    if (start >= d) return { error: "Start is past the end of the video." };
+    if (end <= start) return { error: "End must be after start." };
+    return { start, end: Math.min(end, d) };
+  }
+
+  // Slider -> text inputs
+  function onRange(which) {
+    let s = Number(clipEls.s.value), e = Number(clipEls.e.value);
+    if (s >= e) { if (which === "s") s = Math.max(0, e - 1); else e = Math.min(Number(clipEls.e.max), s + 1); }
+    clipEls.s.value = s; clipEls.e.value = e;
+    $("startTime").value = fmtDuration(s);
+    $("endTime").value = fmtDuration(e);
+    syncClip();
+  }
+  clipEls.s.addEventListener("input", () => onRange("s"));
+  clipEls.e.addEventListener("input", () => onRange("e"));
+
+  // Text inputs -> slider
+  ["startTime", "endTime"].forEach((id) => $(id).addEventListener("input", () => {
+    const c = readClip();
+    if (!c.error) { clipEls.s.value = c.start; clipEls.e.value = c.end; }
+    syncClip();
+  }));
+
+  function syncClip() {
+    const max = Number(clipEls.e.max) || 1;
+    const c = readClip();
+    $("clipError").textContent = c.error || "";
+    $("clipError").hidden = !c.error || !$("clipToggle").checked;
+    const s = c.error ? Number(clipEls.s.value) : c.start, e = c.error ? Number(clipEls.e.value) : c.end;
+    $("rangeFill").style.left = (s / max) * 100 + "%";
+    $("rangeFill").style.width = ((e - s) / max) * 100 + "%";
+    $("clipLen").textContent = c.error ? "–" : fmtDuration(e - s);
+    // The start thumb must stay grabbable when both handles sit at the far right.
+    clipEls.s.style.zIndex = s > max - 2 ? 3 : 1;
+    updateSizeEstimates();
+  }
+
+  function updateSizeEstimates() {
+    let frac = 1;
+    if ($("clipToggle").checked && state.info && state.info.duration) {
+      const c = readClip();
+      if (!c.error) frac = (c.end - c.start) / state.info.duration;
+    }
+    $("qualities").querySelectorAll(".chip").forEach((chip) => {
+      const small = chip.querySelector("small");
+      if (small && chip.dataset.bytes) small.textContent = "~" + fmtBytes(Number(chip.dataset.bytes) * frac);
+    });
+  }
+
+  $("clipToggle").addEventListener("change", () => {
+    $("clipOpts").hidden = !$("clipToggle").checked;
+    if (!$("clipToggle").checked) stopPreview();
+    syncClip();
+  });
+
+  function stopPreview() {
+    $("previewFrame").src = "about:blank";
+    $("previewFrame").hidden = true;
+    $("thumb").hidden = false;
+    $("thumb").parentElement.classList.remove("playing");
+    $("previewBtn").textContent = "▶ Preview section";
+  }
+
+  $("previewBtn").addEventListener("click", () => {
+    if (!$("previewFrame").hidden) return stopPreview();
+    const c = readClip();
+    if (c.error || !state.info) return;
+    const p = new URLSearchParams({ start: Math.floor(c.start), end: Math.ceil(c.end), autoplay: "1", rel: "0" });
+    $("previewFrame").src = "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(state.info.id) + "?" + p;
+    $("previewFrame").hidden = false;
+    $("thumb").hidden = true;
+    $("thumb").parentElement.classList.add("playing");
+    $("previewBtn").textContent = "■ Close preview";
+  });
 
   $("cancelBtn").addEventListener("click", async () => {
     if (!state.jobId) return;

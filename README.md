@@ -7,6 +7,7 @@ A set of YouTube tools that runs locally:
   - **Encoding:** original streams (lossless merge, fastest), H.264/AAC (plays everywhere), or compressed (H.264 CRF 28, smaller)
   - **Container:** MP4, MKV or WebM
   - **Audio only:** MP3 (with cover art), M4A/AAC, Opus, FLAC, WAV, or the original stream; 96–320 kbps
+  - **Section / duration selection:** download just part of a video or track (start/end slider or typed times like `1:23`, with an in-page preview). Audio cuts are exact. Video cuts snap to keyframes unless you tick "frame-accurate"
   - Live progress (speed and ETA), cancel, and files auto-deleted after 1 hour
 - **Dashboard** (`/dashboard`, needs Google sign-in). Includes the **Mass Comment Reply** tool: scan a video's comments, filter by keyword, skip threads you already replied to, pick which ones to answer, and reply to all of them.
 
@@ -52,7 +53,7 @@ Sign-in uses Google Identity Services. The old `gapi.auth2` library was shut dow
 | Method | Path | Description |
 | --- | --- | --- |
 | `POST` | `/api/info` | `{ url }` → title, thumbnail, duration, available qualities |
-| `POST` | `/api/jobs` | `{ url, mode: "video", height, encoding, container }` or `{ url, mode: "audio", audioFormat, audioBitrate }` → `{ id }` |
+| `POST` | `/api/jobs` | `{ url, mode: "video", height, encoding, container }` or `{ url, mode: "audio", audioFormat, audioBitrate }`, plus optional `start` / `end` (seconds or `"mm:ss"`) and `preciseCut` → `{ id }` |
 | `GET` | `/api/jobs/:id/events` | Server-sent events with progress |
 | `GET` | `/api/jobs/:id/file` | Download the finished file |
 | `DELETE` | `/api/jobs/:id` | Cancel a job |

@@ -23,7 +23,10 @@
 
     <section id="result" class="card result" hidden>
       <div class="video-meta">
-        <img id="thumb" alt="">
+        <div class="media">
+          <img id="thumb" alt="">
+          <iframe id="previewFrame" title="Section preview" allow="autoplay; encrypted-media" allowfullscreen hidden></iframe>
+        </div>
         <div>
           <h2 id="title"></h2>
           <p class="muted"><span id="channel"></span> · <span id="duration"></span></p>
@@ -81,6 +84,36 @@
           </select>
         </div>
         <p id="audioHint" class="hint"></p>
+      </div>
+
+      <div class="clip">
+        <label class="check"><input type="checkbox" id="clipToggle"> Download only a section</label>
+        <div id="clipOpts" hidden>
+          <div class="range-dual" id="rangeDual">
+            <div class="range-track"><div id="rangeFill"></div></div>
+            <input type="range" id="rangeStart" min="0" step="1" value="0" aria-label="Start time">
+            <input type="range" id="rangeEnd" min="0" step="1" value="0" aria-label="End time">
+          </div>
+          <div class="row clip-times">
+            <div class="field">
+              <label class="opt-label" for="startTime">Start</label>
+              <input id="startTime" type="text" inputmode="numeric" placeholder="0:00">
+            </div>
+            <div class="field">
+              <label class="opt-label" for="endTime">End</label>
+              <input id="endTime" type="text" inputmode="numeric" placeholder="end">
+            </div>
+            <div class="field clip-len">
+              <span class="opt-label">Length</span>
+              <strong id="clipLen">0:00</strong>
+            </div>
+          </div>
+          <p id="clipError" class="error" hidden></p>
+          <div class="clip-actions">
+            <button id="previewBtn" class="btn ghost small" type="button">▶ Preview section</button>
+            <label class="check" id="preciseWrap"><input type="checkbox" id="preciseCut"> Frame-accurate cut (re-encodes to H.264, slower). Without it, video may start up to a few seconds early</label>
+          </div>
+        </div>
       </div>
 
       <button id="downloadBtn" class="btn primary wide" type="button">Download</button>

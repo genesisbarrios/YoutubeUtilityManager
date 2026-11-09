@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+  <title>Dashboard · YoutubeUtilityManager</title>
+  <script>window.GOOGLE_CLIENT_ID = <%- JSON.stringify(googleClientId) %>;</script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <%- include('partials/nav') %>
+
+  <main>
+    <!-- Sign-in gate -->
+    <section id="gate" class="card gate">
+      <h1>Creator Dashboard</h1>
+      <p class="muted">Sign in with the Google account that owns your YouTube channel to use the creator tools.</p>
+      <button id="signInBtn" class="btn primary" type="button" disabled>Sign in with Google</button>
+      <p id="gateError" class="error" hidden></p>
+      <p id="noClientId" class="warning" hidden>
+        Sign-in isn't configured. Set <code>GOOGLE_CLIENT_ID</code> in <code>.env</code> (see <code>.env.example</code>) and restart the server.
+      </p>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dash" class="dash" hidden>
+      <aside class="sidebar card">
+        <div class="account">
+          <img id="avatar" alt="">
+          <div>
+            <strong id="channelName"></strong>
+            <small class="muted">Signed in</small>
+          </div>
+        </div>
+        <nav class="side-links">
+          <a class="active" href="#comments">Mass Comment Reply</a>
+          <a href="/">Downloader</a>
+        </nav>
+        <button id="signOutBtn" class="btn ghost small" type="button">Sign out</button>
+      </aside>
+
+      <div class="card tool" id="comments">
+        <h2>Mass Comment Reply</h2>
+        <p class="muted">Find comments on a video, optionally filtered by keyword, then reply to all of them with one message.</p>
+
+        <form id="findForm" class="stack">
+          <div class="field">
+            <label class="opt-label" for="videoId">Video URL or ID</label>
+            <input id="videoId" type="text" required placeholder="https://youtube.com/watch?v=…">
+          </div>
+          <div class="row">
+            <div class="field">
+              <label class="opt-label" for="keyword">Keyword filter (optional)</label>
+              <input id="keyword" type="text" placeholder="e.g. beat">
+            </div>
+            <div class="field narrow">
+              <label class="opt-label" for="maxComments">Scan up to</label>
+              <select id="maxComments">
+                <option value="100">100 comments</option>
+                <option value="300" selected>300 comments</option>
+                <option value="500">500 comments</option>
+                <option value="1000">1000 comments</option>
+              </select>
+            </div>
+          </div>
+          <label class="check"><input id="skipReplied" type="checkbox" checked> Skip threads I've already replied to</label>
+          <button id="findBtn" class="btn primary" type="submit">Find comments</button>
+        </form>
+
+        <div id="feedback" class="alert" hidden></div>
+
+        <div id="matches" hidden>
+          <div class="matches-head">
+            <label class="check"><input id="selectAll" type="checkbox" checked> <span id="matchCount"></span></label>
+          </div>
+          <ul id="commentList" class="comment-list"></ul>
+
+          <div class="field">
+            <label class="opt-label" for="replyText">Reply text</label>
+            <textarea id="replyText" rows="3" placeholder="Thanks for listening! 🔥"></textarea>
+          </div>
+          <button id="replyBtn" class="btn primary" type="button">Reply to selected</button>
+          <p class="hint">Replies are sent one at a time with a short delay, to stay clear of YouTube's spam and rate limits.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

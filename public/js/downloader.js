@@ -1,0 +1,193 @@
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const state = { info: null, mode: "video", height: "best", audioFormat: "mp3", jobId: null, es: null };
+
+  const fmtDuration = (s) => {
+    if (!s && s !== 0) return "";
+    s = Math.round(s);
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(sec).padStart(2, "0");
+  };
+  const fmtBytes = (b) => {
+    if (!b) return "";
+    const u = ["B", "KB", "MB", "GB"]; let i = 0;
+    while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+    return b.toFixed(b >= 100 || i === 0 ? 0 : 1) + " " + u[i];
+  };
+  const showError = (msg) => { $("formError").textContent = msg; $("formError").hidden = !msg; };
+
+  async function api(path, opts) {
+    const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Request failed (" + res.status + ")");
+    return data;
+  }
+
+  // Dependency check
+  api("/api/health").then(({ deps }) => {
+    const missing = Object.keys(deps).filter((k) => !deps[k]);
+    if (missing.length) {
+      $("depsWarning").textContent = "Missing on the server: " + missing.join(", ") + ". Run: brew install yt-dlp ffmpeg";
+      $("depsWarning").hidden = false;
+    }
+  }).catch(() => {});
+
+  $("urlForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    showError("");
+    const btn = $("fetchBtn");
+    btn.disabled = true; btn.textContent = "Loading…";
+    try {
+      const info = await api("/api/info", { method: "POST", body: JSON.stringify({ url: $("url").value }) });
+      if (info.isLive) throw new Error("Live streams aren't supported.");
+      state.info = info;
+      renderInfo(info);
+    } catch (err) {
+      showError(err.message);
+      $("result").hidden = true;
+    } finally {
+      btn.disabled = false; btn.textContent = "Get options";
+    }
+  });
+
+  function renderInfo(info) {
+    $("thumb").src = info.thumbnail || "";
+    $("title").textContent = info.title;
+    $("channel").textContent = info.channel || "";
+    $("duration").textContent = fmtDuration(info.duration);
+
+    const q = $("qualities");
+    q.innerHTML = "";
+    const best = info.qualities[0];
+    const items = [{ value: "best", label: "Best" + (best ? " (" + best.label + ")" : ""), bytes: best && best.approxBytes }]
+      .concat(info.qualities.map((x) => ({ value: String(x.height), label: x.label, bytes: x.approxBytes })));
+    items.forEach((it, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip" + (i === 0 ? " active" : "");
+      b.dataset.value = it.value;
+      b.innerHTML = "<span></span>" + (it.bytes ? "<small>~" + fmtBytes(it.bytes) + "</small>" : "");
+      b.firstChild.textContent = it.label;
+      q.appendChild(b);
+    });
+    state.height = "best";
+    resetProgress();
+    $("result").hidden = false;
+    $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Chip groups
+  function chipGroup(containerId, key, after) {
+    $(containerId).addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      $(containerId).querySelectorAll(".chip").forEach((c) => c.classList.toggle("active", c === chip));
+      state[key] = chip.dataset.value;
+      after && after();
+    });
+  }
+  chipGroup("qualities", "height");
+  chipGroup("audioFormats", "audioFormat", updateAudioHint);
+
+  document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === t));
+    state.mode = t.dataset.mode;
+    $("videoOpts").hidden = state.mode !== "video";
+    $("audioOpts").hidden = state.mode !== "audio";
+  }));
+
+  function updateEncodingHint() {
+    const enc = $("encoding").value;
+    $("container").disabled = enc !== "original";
+    if (enc !== "original") $("container").value = "mp4";
+    $("encodingHint").textContent = {
+      original: "Exact streams from YouTube. 1440p and up are VP9/AV1. If QuickTime won't play the file, use VLC or pick H.264.",
+      h264: "Downloads H.264 directly when YouTube has it (≤1080p). Higher resolutions get re-encoded, which takes longer.",
+      compressed: "Re-encodes to H.264 at CRF 28. Much smaller files with a small quality trade-off. Takes a while for long or 4K videos.",
+    }[enc];
+  }
+  $("encoding").addEventListener("change", updateEncodingHint);
+  updateEncodingHint();
+
+  function updateAudioHint() {
+    const f = state.audioFormat;
+    const lossy = ["mp3", "m4a", "opus"].includes(f);
+    $("bitrate").disabled = !lossy;
+    $("audioHint").textContent = {
+      mp3: "Most compatible. Album art and metadata are embedded.",
+      m4a: "AAC in M4A. Great for Apple devices.",
+      opus: "Best quality per bit. YouTube's native audio codec.",
+      flac: "Lossless container. Note that YouTube's source audio is already lossy (~128–160 kbps Opus/AAC).",
+      wav: "Uncompressed PCM, handy for DAWs and editing.",
+      best: "Saves YouTube's original audio stream as-is, with no conversion.",
+    }[f];
+  }
+  updateAudioHint();
+
+  // Download job
+  $("downloadBtn").addEventListener("click", async () => {
+    if (!state.info) return;
+    showError("");
+    const body = state.mode === "video"
+      ? { url: state.info.url, mode: "video", height: state.height, encoding: $("encoding").value, container: $("container").value }
+      : { url: state.info.url, mode: "audio", audioFormat: state.audioFormat, audioBitrate: $("bitrate").value };
+    $("downloadBtn").disabled = true;
+    try {
+      const { id } = await api("/api/jobs", { method: "POST", body: JSON.stringify(body) });
+      state.jobId = id;
+      watchJob(id);
+    } catch (err) {
+      showError(err.message);
+      $("downloadBtn").disabled = false;
+    }
+  });
+
+  function resetProgress() {
+    if (state.es) state.es.close();
+    $("progress").hidden = true;
+    $("progress").classList.remove("done", "failed");
+    $("saveBtn").hidden = true;
+    $("cancelBtn").hidden = false;
+    $("downloadBtn").disabled = false;
+    $("barFill").style.width = "0%";
+  }
+
+  function watchJob(id) {
+    resetProgress();
+    $("downloadBtn").disabled = true;
+    $("progress").hidden = false;
+    const es = new EventSource("/api/jobs/" + id + "/events");
+    state.es = es;
+    es.onmessage = (ev) => {
+      const s = JSON.parse(ev.data);
+      $("stage").textContent = s.status === "error" ? (s.error || "Failed") : s.stage;
+      $("pct").textContent = Math.floor(s.percent || 0) + "%";
+      $("barFill").style.width = (s.percent || 0) + "%";
+      $("speed").textContent = s.speed ? fmtBytes(s.speed) + "/s" : "";
+      $("eta").textContent = s.eta ? "ETA " + fmtDuration(s.eta) : "";
+      if (s.status === "done") {
+        es.close();
+        $("progress").classList.add("done");
+        $("stage").textContent = "Ready · " + s.filename + (s.size ? " (" + fmtBytes(s.size) + ")" : "");
+        $("pct").textContent = "100%";
+        $("cancelBtn").hidden = true;
+        const href = "/api/jobs/" + id + "/file";
+        $("saveBtn").href = href;
+        $("saveBtn").hidden = false;
+        $("downloadBtn").disabled = false;
+        window.location.href = href; // trigger the browser download
+      } else if (s.status === "error") {
+        es.close();
+        $("progress").classList.add("failed");
+        $("cancelBtn").hidden = true;
+        $("downloadBtn").disabled = false;
+      }
+    };
+    es.onerror = () => { /* EventSource auto-reconnects */ };
+  }
+
+  $("cancelBtn").addEventListener("click", async () => {
+    if (!state.jobId) return;
+    await fetch("/api/jobs/" + state.jobId, { method: "DELETE" }).catch(() => {});
+  });
+})();

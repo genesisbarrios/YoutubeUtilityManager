@@ -1,203 +1,124 @@
 <!doctype html>
-<html>
-    <!-- API KEY:  AIzaSyDfTlm5TM1cqk3jBRd3wxXzFhOYa-cwhTw -->
-    <head>  
-        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">   
-        <script src="https://apis.google.com/js/platform.js?onload=init" async defer></script>
-        <script>
-            function init() {
+<html lang="en">
+<head>
+  <%- include('partials/head') %>
+  <title>YouTube Downloader · YoutubeUtilityManager</title>
+</head>
+<body>
+  <%- include('partials/nav') %>
 
-                gapi.load('auth2', function() {
-                    /* Ready. Make a call to gapi.auth2.init or some other API */
+  <main>
+    <section class="hero">
+      <p class="eyebrow">YouTube Downloader</p>
+      <h1>Download any video in <span class="accent">full quality</span>.</h1>
+      <p class="sub">Up to 8K/4K video with original streams, optional H.264 re-encode or compression, or audio-only in MP3, M4A, Opus, FLAC or WAV.</p>
 
-                    function authenticate() {
-                        return gapi.auth2.getAuthInstance()
-                            .signIn({scope: "https://www.googleapis.com/auth/youtube.force-ssl"})
-                            .then(function() { console.log("Sign-in successful"); },
-                                function(err) { console.error("Error signing in", err); });
-                    }
-                    function loadClient() {
-                        gapi.client.setApiKey("");
-                        return gapi.client.load("https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest")
-                            .then(function() { console.log("GAPI client loaded for API"); },
-                                function(err) { console.error("Error loading GAPI client for API", err); });
-                    }
+      <form id="urlForm" class="url-form" autocomplete="off">
+        <input id="url" type="text" inputmode="url" placeholder="Paste a YouTube link…" required>
+        <button id="fetchBtn" class="btn primary" type="submit">Get options</button>
+      </form>
+      <p id="formError" class="error" hidden></p>
+      <p id="depsWarning" class="warning" hidden></p>
+    </section>
 
-                    gapi.load("client:auth2", function() {
-                        gapi.auth2.init({client_id: "478209681032-2pq74aca31jcl792qd67o19rgdoj208p.apps.googleusercontent.com"});
-                    });  
-
-                    //commenting functions
-
-                    function addTopLevelComment() {
-                        var channelId = ""
-                        var videoId = ""
-                        var comment = ""
-                        return gapi.client.youtube.commentThreads.insert({
-                        "part": "snippet",
-                        "resource": {
-                            "snippet": {
-                            "channelId": channelId,
-                            "topLevelComment": {
-                                "snippet": {
-                                "textOriginal": comment
-                                }
-                            },
-                            "videoId": videoId
-                            }
-                        }
-                        }).then(function(response) {
-                                    // Handle the results here (response.result has the parsed body).
-                                    console.log("Response", response);
-                            },
-                            function(err) { console.error("Execute error", err); });
-                    }
-
-                    function getListOfComments() {
-                        var videoId = document.getElementById("videoid").value;
-                        var keyword = document.getElementById("keyword").value;
-                        var commentText = document.getElementById("commentText").value;
-
-                        gapi.client.youtube.commentThreads.list({
-                            "part": "snippet,replies",
-                            "videoId": videoId,
-                            "maxResults": 100
-                        }).then(function(response) {
-                                // Handle the results here (response.result has the parsed body).
-                                //console.log("Response", response);
-                                var comments = response.result.items
-                                comment(comments, keyword, commentText)
-                                },
-                                function(err) { console.error("Execute error", err); });
-                    }
-
-                    function comment(comments, keyword, commentText){
-                        //filter comments
-                        var filteredComments;
-                        if(keyword != ""){
-                            filteredComments = [];
-                            for(var i=0; i < comments.length; i++){
-                                if(comments[i].snippet.topLevelComment.snippet.textOriginal.toLowerCase().includes(keyword.toLowerCase())){
-                                    filteredComments.push(comments[i]);
-                                }
-                            }
-                        }else{
-                            filteredComments = comments;
-                        }
-
-                        console.log(filteredComments)
-
-                        //loop through filteredComments and reply to each comment with commentText
-                        if(commentText != ""){
-                            for(var i=0; i < filteredComments.length; i++){
-                                if(filteredComments[i].snippet.canReply == true){
-                                    replyComment(filteredComments[i].id, commentText)
-                                }
-                            }
-                        }else{
-                            //give feedback(success or failure)
-                            document.getElementById("feedback").innerHTML = "Comment is empty.";
-                            document.getElementById("feedback").classList.remove('alert-success');
-                            document.getElementById("feedback").classList.add('alert');
-                            document.getElementById("feedback").classList.add('alert-danger');
-                        }
-                    }
-
-                    function replyComment(id, text){
-                        return gapi.client.youtube.comments.insert({
-                            "part": "snippet",
-                            "resource": {
-                              "snippet": {
-                                "parentId": id,
-                                "textOriginal":text
-                              }
-                            }
-                          }).then(function(response) {
-                                // Handle the results here (response.result has the parsed body).
-                                console.log("Response", response);
-                                
-                                //give feedback(success or failure)
-                                document.getElementById("feedback").innerHTML = "Comments submitted.";
-                                document.getElementById("feedback").classList.remove('alert-danger');
-                                document.getElementById("feedback").classList.add('alert');
-                                document.getElementById("feedback").classList.add('alert-success');
-                            },
-                            function(err) { console.error("Execute error", err); });
-                        }
-
-
-                    // onclick functionss
-                    document.getElementById("auth").onclick = function(){
-                        authenticate().then(loadClient()).then(
-                            function(){
-                                document.getElementById("login").style.display = "none";
-                                document.getElementById("comment").style.display = "block";
-
-                                document.getElementById("group1").style.height = "20%";
-                                document.getElementById("group2").style.height = "40%";
-                                document.getElementById("group3").style.height = "20%";
-                            }
-                        )
-                    }
-
-                    document.getElementById("exec").onclick = function(){
-                        getListOfComments();
-                    }
-                });
-            } 
-        </script>
-    </head>
-    <body style="background-color:black;">
-        <nav class="navbar-dark bg-dark">
-            <ul class="nav">
-                <li class="nav-item">
-                    <a class="navbar-brand" href="/">Youtube Multiple Comment App</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" style="color:white;" href="https://github.com/genesisbarrios/YouTubeMultipleCommentApp" target="_blank">Github</a>
-                </li>
-          </ul>
-        </nav>
-
-        <div style="height:80vh;">
-            <div id="group1" style="height:40%;"></div>
-            <div id="group2" style="height:20%;">
-
-                <div class="row">
-                    <div class="col-3"></div>
-                    <div class="col-6" id="login">
-                        <h3 style="text-align:center; color:white;">YouTube Multiple Comment Application</h3>
-                        <div class="row">
-                            <div class="col-5"></div>
-                            <button id="auth" type="button" class="btn btn-danger col-2" >Log In</button>
-                            <div class="col-5"></div>
-                        </div>
-                    </div>
-                    <div class="col-6" id="comment" style="color:white; display:none;">
-                        <div id="feedback"></div>
-                        <h3 style="text-align:center; color:white;">YouTube Multiple Comment Application</h3>
-                        
-                        <div class="form-group">
-                            <label for="videoid">Video Id</label>
-                            <input type="text" name="videoid" id="videoid" class="form-control">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="keyword">Keyword</label>
-                            <input type="text" name="keyword" id="keyword" class="form-control">
-                        </div>
-    
-                        <div class="form-group">
-                            <label for="commentText">Comment</label>
-                            <input type="text" name="commentText" id="commentText" class="form-control">
-                        </div>
-    
-                        <button class="btn btn-danger" id="exec">Submit</button>
-                    </div>
-                    <div class="col-3"></div>
-                </div>
-            </div>
-            <div id="group3" style="height:40%;"></div>
+    <section id="result" class="card result" hidden>
+      <div class="video-meta">
+        <img id="thumb" alt="">
+        <div>
+          <h2 id="title"></h2>
+          <p class="muted"><span id="channel"></span> · <span id="duration"></span></p>
         </div>
-    </body>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-mode="video" role="tab">Video</button>
+        <button type="button" class="tab" data-mode="audio" role="tab">Audio only</button>
+      </div>
+
+      <div id="videoOpts" class="opts">
+        <label class="opt-label">Quality</label>
+        <div id="qualities" class="chips"></div>
+
+        <div class="row">
+          <div class="field">
+            <label class="opt-label" for="encoding">Encoding</label>
+            <select id="encoding">
+              <option value="original">Original streams — best quality, fastest</option>
+              <option value="h264">H.264 / AAC — plays everywhere (re-encodes if needed)</option>
+              <option value="compressed">Compressed — smaller file (H.264 CRF 28)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="opt-label" for="container">Format</label>
+            <select id="container">
+              <option value="mp4">MP4</option>
+              <option value="mkv">MKV</option>
+              <option value="webm">WebM</option>
+            </select>
+          </div>
+        </div>
+        <p id="encodingHint" class="hint"></p>
+      </div>
+
+      <div id="audioOpts" class="opts" hidden>
+        <label class="opt-label">Format</label>
+        <div id="audioFormats" class="chips">
+          <button type="button" class="chip active" data-value="mp3">MP3</button>
+          <button type="button" class="chip" data-value="m4a">M4A (AAC)</button>
+          <button type="button" class="chip" data-value="opus">Opus</button>
+          <button type="button" class="chip" data-value="flac">FLAC</button>
+          <button type="button" class="chip" data-value="wav">WAV</button>
+          <button type="button" class="chip" data-value="best">Original (no conversion)</button>
+        </div>
+        <div class="field narrow">
+          <label class="opt-label" for="bitrate">Bitrate</label>
+          <select id="bitrate">
+            <option value="320">320 kbps</option>
+            <option value="256">256 kbps</option>
+            <option value="192">192 kbps</option>
+            <option value="128">128 kbps</option>
+            <option value="96">96 kbps</option>
+          </select>
+        </div>
+        <p id="audioHint" class="hint"></p>
+      </div>
+
+      <button id="downloadBtn" class="btn primary wide" type="button">Download</button>
+
+      <div id="progress" class="progress" hidden>
+        <div class="progress-top">
+          <span id="stage">Starting…</span>
+          <span id="pct">0%</span>
+        </div>
+        <div class="bar"><div id="barFill"></div></div>
+        <div class="progress-bottom muted">
+          <span id="speed"></span>
+          <span id="eta"></span>
+        </div>
+        <div class="progress-actions">
+          <button id="cancelBtn" class="btn ghost small" type="button">Cancel</button>
+          <a id="saveBtn" class="btn primary small" hidden>Save file</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="feature">
+        <h3>Original quality</h3>
+        <p>Grabs the highest-bitrate video and audio streams and merges them losslessly, with no recompression.</p>
+      </div>
+      <div class="feature">
+        <h3>Every resolution</h3>
+        <p>8K, 4K, 2K, 1080p, 720p, 480p and lower, depending on what the uploader published.</p>
+      </div>
+      <div class="feature">
+        <h3>Creator tools</h3>
+        <p>Sign in to the <a href="/dashboard">dashboard</a> to reply to comments in bulk on your own videos.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer muted">Only download content you own or have permission to use.</footer>
+  <script src="/js/downloader.js"></script>
+</body>
 </html>

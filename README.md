@@ -5,7 +5,7 @@ A set of YouTube tools that runs locally:
 - **Downloader** (home page). Paste a link and download in full quality.
   - **Video:** Best / 8K / 4K / 2K (1440p) / 1080p / 720p / 480p / 360p…, depending on what the video offers
   - **Encoding:** original streams (lossless merge, fastest), H.264/AAC (plays everywhere), or compressed (H.264 CRF 28, smaller)
-  - **Container:** MP4, MKV or WebM
+  - **Container:** MP4, MOV (QuickTime / Final Cut), MKV or WebM. MOV is a lossless copy up to 1080p; above 1080p YouTube only has VP9/AV1, which MOV can't hold, so the video is converted to H.264
   - **Audio only:** MP3 (with cover art), M4A/AAC, Opus, FLAC, WAV, or the original stream; 96–320 kbps
   - **Section / duration selection:** download just part of a video or track (start/end slider or typed times like `1:23`, with an in-page preview). Clips fetch only the HLS segments that cover the range, 8 at a time, then trim locally, so a 30 s clip from a 3 h livestream takes a few seconds. Audio cuts are exact. Video cuts snap to keyframes unless you tick "frame-accurate"
   - Live progress (speed and ETA), cancel, and files auto-deleted after 1 hour

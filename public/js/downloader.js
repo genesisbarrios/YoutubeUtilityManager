@@ -101,15 +101,19 @@
 
   function updateEncodingHint() {
     const enc = $("encoding").value;
-    $("container").disabled = enc !== "original";
-    if (enc !== "original") $("container").value = "mp4";
+    // Re-encoded output is H.264/AAC, which fits MP4 or MOV only.
+    [...$("container").options].forEach((o) => { o.disabled = enc !== "original" && !["mp4", "mov"].includes(o.value); });
+    if (enc !== "original" && !["mp4", "mov"].includes($("container").value)) $("container").value = "mp4";
     $("encodingHint").textContent = {
       original: "Exact streams from YouTube. 1440p and up are VP9/AV1. If QuickTime won't play the file, use VLC or pick H.264.",
       h264: "Downloads H.264 directly when YouTube has it (≤1080p). Higher resolutions get re-encoded, which takes longer.",
       compressed: "Re-encodes to H.264 at CRF 28. Much smaller files with a small quality trade-off. Takes a while for long or 4K videos.",
-    }[enc];
+    }[enc] + ($("container").value === "mov" && enc === "original"
+      ? " MOV (QuickTime/Final Cut): up to 1080p is a lossless copy; above 1080p the video is converted to H.264, which takes longer."
+      : "");
   }
   $("encoding").addEventListener("change", updateEncodingHint);
+  $("container").addEventListener("change", updateEncodingHint);
   updateEncodingHint();
 
   function updateAudioHint() {

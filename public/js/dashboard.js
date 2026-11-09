@@ -60,20 +60,36 @@
 
   async function enterDashboard() {
     try {
-      const data = await yt("channels", { params: { part: "snippet", mine: "true" } });
+      const data = await yt("channels", { params: { part: "snippet,contentDetails", mine: "true" } });
       const ch = data.items && data.items[0];
       if (!ch) throw new Error("This Google account has no YouTube channel.");
-      me = { id: ch.id, title: ch.snippet.title, avatar: ch.snippet.thumbnails.default.url };
+      me = { id: ch.id, title: ch.snippet.title, avatar: ch.snippet.thumbnails.default.url,
+        uploads: ch.contentDetails && ch.contentDetails.relatedPlaylists && ch.contentDetails.relatedPlaylists.uploads };
       $("channelName").textContent = me.title;
       $("avatar").src = me.avatar;
       $("gate").hidden = true;
       $("dash").hidden = false;
+      showTool();
+      document.dispatchEvent(new CustomEvent("yum:signedin", { detail: me }));
     } catch (err) {
       token = null; clearToken();
       $("gate").hidden = false; $("dash").hidden = true;
       gateError(err.message);
     }
   }
+
+  // ---------- Tool routing (#comments, #descriptions) ----------
+  function showTool() {
+    const tools = [...document.querySelectorAll("[data-tool]")].map((el) => el.dataset.tool);
+    const name = tools.includes(location.hash.slice(1)) ? location.hash.slice(1) : tools[0];
+    document.querySelectorAll("[data-tool]").forEach((el) => { el.hidden = el.dataset.tool !== name; });
+    document.querySelectorAll("[data-tool-link]").forEach((a) => a.classList.toggle("active", a.dataset.toolLink === name));
+    document.dispatchEvent(new CustomEvent("yum:tool", { detail: name }));
+  }
+  window.addEventListener("hashchange", showTool);
+
+  // Shared helpers for other dashboard tools (descriptions.js)
+  window.YUM = { yt: (...a) => yt(...a), me: () => me, parseVideoId: (v) => parseVideoId(v) };
 
   // ---------- Mass comment reply ----------
   function parseVideoId(input) {

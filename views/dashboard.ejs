@@ -32,13 +32,14 @@
           </div>
         </div>
         <nav class="side-links">
-          <a class="active" href="#comments">Mass Comment Reply</a>
-          <a href="/">Downloader</a>
+          <a href="#comments" data-tool-link="comments">Mass Comment Reply</a>
+          <a href="#descriptions" data-tool-link="descriptions">Mass Description Editor</a>
+          <a href="/">Downloader ↗</a>
         </nav>
         <button id="signOutBtn" class="btn ghost small" type="button">Sign out</button>
       </aside>
 
-      <div class="card tool" id="comments">
+      <div class="card tool" data-tool="comments">
         <h2>Mass Comment Reply</h2>
         <p class="muted">Find comments on a video, optionally filtered by keyword, then reply to all of them with one message.</p>
 
@@ -82,9 +83,83 @@
           <p class="hint">Replies are sent one at a time with a short delay, to stay clear of YouTube's spam and rate limits.</p>
         </div>
       </div>
+      <div class="card tool" data-tool="descriptions" hidden>
+        <h2>Mass Description Editor</h2>
+        <p class="muted">Update the descriptions of many videos at once. Replace them completely, find and replace a piece of text, or add a line to every one.</p>
+
+        <h3 class="step"><span>1</span> Choose videos</h3>
+        <div class="row">
+          <div class="field">
+            <input id="vidSearch" type="text" placeholder="Filter by title or description…">
+          </div>
+          <button id="loadVideosBtn" class="btn ghost small" type="button">Reload my videos</button>
+        </div>
+        <div class="matches-head">
+          <label class="check"><input id="vidSelectAll" type="checkbox"> <span id="vidCount">Loading your videos…</span></label>
+        </div>
+        <ul id="videoList" class="video-list"></ul>
+        <details class="paste-ids">
+          <summary>Or paste video links / IDs</summary>
+          <textarea id="vidPaste" rows="3" placeholder="One per line: https://youtu.be/… or 11-character IDs"></textarea>
+          <button id="addPastedBtn" class="btn ghost small" type="button">Add &amp; select</button>
+        </details>
+
+        <h3 class="step"><span>2</span> Choose the edit</h3>
+        <div class="tabs" id="descModes" role="tablist">
+          <button type="button" class="tab active" data-mode="replaceAll">Replace entire description</button>
+          <button type="button" class="tab" data-mode="findReplace">Find &amp; replace text</button>
+          <button type="button" class="tab" data-mode="add">Add text</button>
+        </div>
+
+        <div data-mode-panel="replaceAll" class="stack">
+          <div class="field">
+            <label class="opt-label" for="newDesc">New description</label>
+            <textarea id="newDesc" rows="8" placeholder="The full new description for every selected video…"></textarea>
+            <small class="muted char-count" data-for="newDesc"></small>
+          </div>
+        </div>
+
+        <div data-mode-panel="findReplace" class="stack" hidden>
+          <div class="field">
+            <label class="opt-label" for="findText">Find</label>
+            <textarea id="findText" rows="2" placeholder="e.g. https://old-link.com"></textarea>
+          </div>
+          <div class="field">
+            <label class="opt-label" for="replaceText">Replace with <span class="muted">(leave empty to remove it)</span></label>
+            <textarea id="replaceText" rows="2" placeholder="e.g. https://new-link.com"></textarea>
+          </div>
+          <label class="check"><input id="caseSensitive" type="checkbox"> Case-sensitive</label>
+        </div>
+
+        <div data-mode-panel="add" class="stack" hidden>
+          <div class="field">
+            <label class="opt-label" for="addText">Text to add</label>
+            <textarea id="addText" rows="4" placeholder="e.g. 🎧 Stream the full album: https://…"></textarea>
+          </div>
+          <div class="row radios">
+            <label class="check"><input type="radio" name="addWhere" value="bottom" checked> At the bottom</label>
+            <label class="check"><input type="radio" name="addWhere" value="top"> At the top</label>
+          </div>
+        </div>
+
+        <button id="previewDescBtn" class="btn primary" type="button">Preview changes</button>
+
+        <div id="descReview" hidden>
+          <h3 class="step"><span>3</span> Review &amp; apply</h3>
+          <div id="descSummary" class="alert"></div>
+          <ul id="descPreviewList" class="preview-list"></ul>
+          <div class="apply-row">
+            <button id="applyDescBtn" class="btn primary" type="button">Update videos</button>
+            <button id="backupDescBtn" class="btn ghost small" type="button">Download backup (JSON)</button>
+            <button id="revertDescBtn" class="btn ghost small" type="button" hidden>Revert changes</button>
+          </div>
+          <p class="hint">Each update uses 50 of your daily 10,000 YouTube API quota units, which is about 200 videos a day. Titles, tags and categories are kept as they are.</p>
+        </div>
+      </div>
     </section>
   </main>
 
   <script src="/js/dashboard.js"></script>
+  <script src="/js/descriptions.js"></script>
 </body>
 </html>

@@ -9,7 +9,14 @@ A set of YouTube tools that runs locally:
   - **Audio only:** MP3 (with cover art), M4A/AAC, Opus, FLAC, WAV, or the original stream; 96–320 kbps
   - **Section / duration selection:** download just part of a video or track (start/end slider or typed times like `1:23`, with an in-page preview). Audio cuts are exact. Video cuts snap to keyframes unless you tick "frame-accurate"
   - Live progress (speed and ETA), cancel, and files auto-deleted after 1 hour
-- **Dashboard** (`/dashboard`, needs Google sign-in). Includes the **Mass Comment Reply** tool: scan a video's comments, filter by keyword, skip threads you already replied to, pick which ones to answer, and reply to all of them.
+- **Dashboard** (`/dashboard`, needs Google sign-in). Has two tools:
+  - **Mass Comment Reply:** scan a video's comments, filter by keyword, skip threads you already replied to, pick which ones to answer, and reply to all of them.
+  - **Mass Description Editor:** pick videos from your uploads (search, select all, or paste links), then:
+    - **replace** the whole description,
+    - **find & replace** a string (leave the replacement empty to remove it), or
+    - **add** text to the top or bottom.
+
+    You see a before/after preview for every video before anything is saved. Titles, tags and categories are kept. You can download a JSON backup and revert with one click. YouTube's API quota allows about 200 updates a day.
 
 ## Requirements
 
